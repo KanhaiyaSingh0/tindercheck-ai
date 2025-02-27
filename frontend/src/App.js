@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import './App.css';
 import ImageUpload from './ImageUpload';
 
+const API_URL = process.env.REACT_APP_API_URL || 'https://tindercheck-ai-backend.onrender.com';
+
 function App() {
     const [name, setName] = useState('');
     const [location, setLocation] = useState('');
@@ -29,18 +31,21 @@ function App() {
             }
 
             console.log('Sending request to backend...');
-            const response = await fetch('http://localhost:5000/search', {
+            const response = await fetch(`${API_URL}/search`, {
                 method: 'POST',
                 body: formData,
+                headers: {
+                    'Accept': 'application/json',
+                }
             });
 
             console.log('Response status:', response.status);
-            const data = await response.json();
-            
             if (!response.ok) {
-                throw new Error(data.error || 'Search failed. Please try again.');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
+            const data = await response.json();
+            
             if (data.length === 0) {
                 setError('No matches found. Try different search criteria.');
             } else {

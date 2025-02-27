@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './App.css';
 import ImageUpload from './ImageUpload';
 
+// Add this at the top level
 const API_URL = process.env.REACT_APP_API_URL || 'https://tindercheck-ai-backend.onrender.com';
 
 function App() {
@@ -30,13 +31,13 @@ function App() {
                 formData.append('image', selectedImage);
             }
 
-            console.log('Sending request to backend...');
+            // Updated fetch call
+            console.log('API URL:', API_URL);
+            console.log('Full request URL:', `${API_URL}/search`);
             const response = await fetch(`${API_URL}/search`, {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'Accept': 'application/json',
-                }
+                // Remove headers when sending FormData
             });
 
             console.log('Response status:', response.status);

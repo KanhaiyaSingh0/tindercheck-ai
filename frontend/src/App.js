@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './App.css';
 import ImageUpload from './ImageUpload';
 
-// Add this at the top level
+// Make sure this line is here and correct
 const API_URL = process.env.REACT_APP_API_URL || 'https://tindercheck-ai-backend.onrender.com';
 
 function App() {
@@ -20,7 +20,7 @@ function App() {
         setIsLoading(true);
         
         try {
-            console.log('Starting search...');
+            console.log('Starting search with API URL:', API_URL);
             const formData = new FormData();
             formData.append('name', name);
             formData.append('location', location);
@@ -37,7 +37,7 @@ function App() {
             const response = await fetch(`${API_URL}/search`, {
                 method: 'POST',
                 body: formData,
-                // Remove headers when sending FormData
+                // Remove any headers when sending FormData
             });
 
             console.log('Response status:', response.status);

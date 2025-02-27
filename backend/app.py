@@ -10,14 +10,7 @@ from datetime import datetime
 import time
 
 app = Flask(__name__)
-CORS(app, resources={
-    r"/*": {
-        "origins": ["https://tindercheck-ai.vercel.app"],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"],
-        "supports_credentials": True
-    }
-})
+CORS(app, origins=["https://tindercheck-ai.vercel.app"], supports_credentials=True)
 
 @app.route('/')
 def home():

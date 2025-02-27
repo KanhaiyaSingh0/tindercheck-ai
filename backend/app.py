@@ -12,6 +12,16 @@ import time
 app = Flask(__name__)
 CORS(app)
 
+@app.route('/')
+def home():
+    return jsonify({
+        "status": "online",
+        "message": "Tinder Check AI Backend is running",
+        "endpoints": {
+            "search": "/search (POST) - Search for profiles"
+        }
+    })
+
 # Store all profiles with timestamp
 profile_database = {}
 PROFILE_EXPIRY = 3600  # 1 hour in seconds

@@ -12,9 +12,10 @@ import time
 app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
-        "origins": ["https://tindercheck-ai-vercel.vercel.app", "http://localhost:3000"],
+        "origins": ["https://tindercheck-ai.vercel.app"],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
     }
 })
 

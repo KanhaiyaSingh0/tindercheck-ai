@@ -10,7 +10,13 @@ from datetime import datetime
 import time
 
 app = Flask(__name__)
-CORS(app, origins=["https://tindercheck-ai.vercel.app"], supports_credentials=True)
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
+    }
+})
 
 @app.route('/')
 def home():
@@ -27,7 +33,7 @@ profile_database = {}
 PROFILE_EXPIRY = 3600  # 1 hour in seconds
 
 def get_tinder_token():
-    return 'a645c3d9-964f-4a87-8cd9-f19d83e90edd'
+    return 'a1d21cf2-3d50-4968-a3db-43266e6c799e'
 
 def fetch_new_profiles():
     """Fetch new profiles from Tinder API"""

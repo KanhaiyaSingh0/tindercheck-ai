@@ -33,7 +33,7 @@ profile_database = {}
 PROFILE_EXPIRY = 3600  # 1 hour in seconds
 
 def get_tinder_token():
-    return 'a1d21cf2-3d50-4968-a3db-43266e6c799e'
+    return 'bb233480-434e-4c3d-8ce2-1ee5dc5c935a'
 
 def fetch_new_profiles():
     """Fetch new profiles from Tinder API"""

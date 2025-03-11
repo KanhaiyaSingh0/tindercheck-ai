@@ -119,34 +119,55 @@ def clean_old_profiles():
     for profile_id in expired_profiles:
         del profile_database[profile_id]
 
-def search_profiles(name='', location='', age=''):
+def search_profiles(name='', location='', age='', max_attempts=5):
     """Search profiles in database and fetch new ones if needed"""
     clean_old_profiles()
     
-    # First search in existing profiles
-    matches = []
-    for profile in profile_database.values():
-        name_match = not name or name.lower() in profile['name'].lower()
-        location_match = not location or location.lower() in str(profile['location']).lower()
-        age_match = not age or str(age) == str(profile['age'])
+    attempt = 0
+    while attempt < max_attempts:
+        attempt += 1
+        print(f"Search attempt {attempt}/{max_attempts}")
         
-        if name_match and location_match and age_match:
-            matches.append(profile)
-    
-    # If no matches or few matches, fetch new profiles
-    if len(matches) < 5:
-        new_profiles = fetch_new_profiles()
+        # First search in existing profiles
+        matches = []
+        exact_matches = []
         
-        # Search through new profiles
-        for profile in new_profiles:
-            name_match = not name or name.lower() in profile['name'].lower()
-            location_match = not location or location.lower() in str(profile['location']).lower()
+        for profile in profile_database.values():
+            # Check for exact matches
+            name_match = not name or name.lower() == profile['name'].lower()
+            location_match = not location or location.lower() == str(profile['location']).lower()
             age_match = not age or str(age) == str(profile['age'])
             
-            if name_match and location_match and age_match and profile not in matches:
-                matches.append(profile)
+            if name_match and location_match and age_match:
+                exact_matches.append(profile)
+            else:
+                # Check for partial matches
+                name_partial = not name or name.lower() in profile['name'].lower()
+                location_partial = not location or location.lower() in str(profile['location']).lower()
+                age_partial = not age or str(age) == str(profile['age'])
+                
+                if name_partial and location_partial and age_partial:
+                    matches.append(profile)
+        
+        # If we found exact matches, return them
+        if exact_matches:
+            print(f"Found {len(exact_matches)} exact matches!")
+            return exact_matches
+            
+        # If we have enough partial matches, return them
+        if len(matches) >= 5:
+            print(f"Found {len(matches)} partial matches")
+            return matches
+            
+        # Fetch new profiles and continue searching
+        print("Fetching new profiles...")
+        new_profiles = fetch_new_profiles()
+        if not new_profiles:
+            print("No new profiles found")
+            break
     
-    return matches
+    # If we've exhausted all attempts, return whatever matches we have
+    return matches if matches else exact_matches
 
 @app.route('/search', methods=['POST'])
 def search():
@@ -162,16 +183,11 @@ def search():
         if not any([name, location, age]):
             return jsonify({"error": "Please provide at least one search criteria"}), 400
         
-        # Search profiles
-        matches = search_profiles(name, location, age)
+        # Search profiles with multiple attempts
+        matches = search_profiles(name, location, age, max_attempts=5)
         
         if not matches:
-            # Try one more time with fresh data
-            fetch_new_profiles()
-            matches = search_profiles(name, location, age)
-            
-            if not matches:
-                return jsonify({"error": "No matches found. Try different search criteria."}), 404
+            return jsonify({"error": "No matches found. Try different search criteria."}), 404
         
         # Handle image upload
         image_file = request.files.get('image')

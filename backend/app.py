@@ -119,7 +119,7 @@ def clean_old_profiles():
     for profile_id in expired_profiles:
         del profile_database[profile_id]
 
-def search_profiles(name='', location='', age='', max_attempts=200):
+def search_profiles(name='', location='', age='', max_attempts=1000):
     """Search profiles in database and fetch new ones if needed"""
     clean_old_profiles()
     
@@ -181,13 +181,30 @@ def search():
         print(f"Search parameters - Name: {name}, Location: {location}, Age: {age}")
         
         if not any([name, location, age]):
-            return jsonify({"error": "Please provide at least one search criteria"}), 400
+            return jsonify({
+                "status": "error",
+                "message": "Please provide at least one search criteria (name, location, or age)"
+            }), 200  # Changed from 400 to 200
         
         # Search profiles with multiple attempts
         matches = search_profiles(name, location, age, max_attempts=5)
         
         if not matches:
-            return jsonify({"error": "No matches found. Try different search criteria."}), 404
+            search_criteria = []
+            if name: search_criteria.append(f"name: {name}")
+            if location: search_criteria.append(f"location: {location}")
+            if age: search_criteria.append(f"age: {age}")
+            
+            return jsonify({
+                "status": "no_matches",
+                "message": f"No profiles found matching your criteria ({', '.join(search_criteria)}). Please try:",
+                "suggestions": [
+                    "Different search criteria",
+                    "Broader search terms",
+                    "Searching again in a few minutes",
+                    "Checking if the spelling is correct"
+                ]
+            }), 200  # Changed from 404 to 200
         
         # Handle image upload
         image_file = request.files.get('image')

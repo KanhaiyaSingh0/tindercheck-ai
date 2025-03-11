@@ -123,11 +123,15 @@ def search_profiles(name='', location='', age=''):
     """Search profiles in database and fetch new ones if needed"""
     clean_old_profiles()
     
-    while True:  # Remove max_attempts limit
-        # First search in existing profiles
-        matches = []
-        exact_matches = []
+    matches = []
+    exact_matches = []
+    search_count = 0
+    
+    while True:  # Infinite loop until matches are found
+        search_count += 1
+        print(f"Search iteration #{search_count}")
         
+        # Search in existing profiles
         for profile in profile_database.values():
             # Check for exact matches
             name_match = not name or name.lower() == profile['name'].lower()
@@ -135,7 +139,8 @@ def search_profiles(name='', location='', age=''):
             age_match = not age or str(age) == str(profile['age'])
             
             if name_match and location_match and age_match:
-                exact_matches.append(profile)
+                if profile not in exact_matches:  # Avoid duplicates
+                    exact_matches.append(profile)
             else:
                 # Check for partial matches
                 name_partial = not name or name.lower() in profile['name'].lower()
@@ -143,25 +148,31 @@ def search_profiles(name='', location='', age=''):
                 age_partial = not age or str(age) == str(profile['age'])
                 
                 if name_partial and location_partial and age_partial:
-                    matches.append(profile)
+                    if profile not in matches:  # Avoid duplicates
+                        matches.append(profile)
         
         # If we found exact matches, return them
         if exact_matches:
-            print(f"Found {len(exact_matches)} exact matches!")
+            print(f"Found {len(exact_matches)} exact matches after {search_count} iterations!")
             return exact_matches
             
         # If we have enough partial matches, return them
         if len(matches) >= 5:
-            print(f"Found {len(matches)} partial matches")
+            print(f"Found {len(matches)} partial matches after {search_count} iterations")
             return matches
             
         # Fetch new profiles and continue searching
         print("Fetching new profiles...")
         new_profiles = fetch_new_profiles()
+        
+        # If we couldn't fetch new profiles, wait a bit and try again
         if not new_profiles:
-            print("No new profiles found")
-            # Instead of breaking, return whatever matches we have
-            return matches if matches else exact_matches
+            print("No new profiles found, waiting 2 seconds before trying again...")
+            time.sleep(2)  # Add a small delay to avoid overwhelming the API
+            continue  # Continue the loop instead of returning
+
+    # This line should never be reached due to infinite loop
+    return matches if matches else exact_matches
 
 @app.route('/search', methods=['POST'])
 def search():
@@ -180,7 +191,7 @@ def search():
                 "message": "Please provide at least one search criteria (name, location, or age)"
             }), 200
         
-        # Search profiles without max_attempts limit
+        # Search profiles continuously until matches are found
         matches = search_profiles(name, location, age)
         
         if not matches:
@@ -190,13 +201,12 @@ def search():
             if age: search_criteria.append(f"age: {age}")
             
             return jsonify({
-                "status": "no_matches",
-                "message": f"No profiles found matching your criteria ({', '.join(search_criteria)}). Please try:",
+                "status": "searching",
+                "message": f"Still searching for profiles matching ({', '.join(search_criteria)}). Please try again in a moment.",
                 "suggestions": [
-                    "Different search criteria",
-                    "Broader search terms",
-                    "Searching again in a few minutes",
-                    "Checking if the spelling is correct"
+                    "Try the search again",
+                    "Wait a few moments",
+                    "Check if the search criteria are correct"
                 ]
             }), 200
         

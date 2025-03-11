@@ -32,53 +32,77 @@ def home():
 profile_database = {}
 PROFILE_EXPIRY = 3600  # 1 hour in seconds
 
+# Add this near the top of the file, after imports
+TINDER_TOKENS = [
+    '7a468214-4d89-4715-84ee-c2aa72f48eb7',  # Original token    # Add more tokens here
+    'b857a6ec-a5aa-4f8d-aace-f4952585f3ef',
+]
+current_token_index = 0
+
 def get_tinder_token():
-    return 'bb233480-434e-4c3d-8ce2-1ee5dc5c935a'
+    """Rotate through available Tinder tokens"""
+    global current_token_index
+    token = TINDER_TOKENS[current_token_index]
+    current_token_index = (current_token_index + 1) % len(TINDER_TOKENS)
+    return token
 
 def fetch_new_profiles():
-    """Fetch new profiles from Tinder API"""
+    """Fetch new profiles from Tinder API using multiple tokens"""
     try:
-        token = get_tinder_token()
-        headers = {
-            'X-Auth-Token': token,
-            'Content-Type': 'application/json'
-        }
+        all_new_profiles = []
+        errors = 0
         
-        url = 'https://api.gotinder.com/v2/recs/core'
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-        
-        current_time = time.time()
-        new_profiles = []
-        
-        for result in data.get('data', {}).get('results', []):
-            user = result.get('user', {})
-            
-            profile_pictures = []
-            for photo in user.get('photos', []):
-                photo_url = photo.get('url')
-                if photo_url:
-                    profile_pictures.append(photo_url)
-
-            if profile_pictures:
-                profile = {
-                    'name': user.get('name', ''),
-                    'age': user.get('age', ''),
-                    'location': user.get('city', {}).get('name', ''),
-                    'profile_pictures': profile_pictures,
-                    'bio': user.get('bio', ''),
-                    'last_active': user.get('ping_time'),
-                    'timestamp': current_time
+        # Try each token until we get enough profiles or run out of tokens
+        for _ in range(len(TINDER_TOKENS)):
+            try:
+                token = get_tinder_token()
+                headers = {
+                    'X-Auth-Token': token,
+                    'Content-Type': 'application/json'
                 }
                 
-                # Use name+age as unique identifier
-                profile_id = f"{profile['name']}_{profile['age']}"
-                profile_database[profile_id] = profile
-                new_profiles.append(profile)
+                url = 'https://api.gotinder.com/v2/recs/core'
+                response = requests.get(url, headers=headers)
+                response.raise_for_status()
+                data = response.json()
+                
+                current_time = time.time()
+                
+                for result in data.get('data', {}).get('results', []):
+                    user = result.get('user', {})
+                    
+                    profile_pictures = []
+                    for photo in user.get('photos', []):
+                        photo_url = photo.get('url')
+                        if photo_url:
+                            profile_pictures.append(photo_url)
+
+                    if profile_pictures:
+                        profile = {
+                            'name': user.get('name', ''),
+                            'age': user.get('age', ''),
+                            'location': user.get('city', {}).get('name', ''),
+                            'profile_pictures': profile_pictures,
+                            'bio': user.get('bio', ''),
+                            'last_active': user.get('ping_time'),
+                            'timestamp': current_time
+                        }
+                        
+                        profile_id = f"{profile['name']}_{profile['age']}"
+                        profile_database[profile_id] = profile
+                        all_new_profiles.append(profile)
+                
+                # If we got enough profiles, break the loop
+                if len(all_new_profiles) >= 10:
+                    break
+                    
+            except Exception as e:
+                print(f"Error with token {token}: {e}")
+                errors += 1
+                continue
         
-        print(f"Fetched {len(new_profiles)} new profiles")
-        return new_profiles
+        print(f"Fetched {len(all_new_profiles)} new profiles using {len(TINDER_TOKENS) - errors} successful tokens")
+        return all_new_profiles
     
     except Exception as e:
         print(f"Error fetching profiles: {e}")

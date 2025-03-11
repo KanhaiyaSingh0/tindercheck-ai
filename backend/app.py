@@ -52,7 +52,6 @@ def fetch_new_profiles():
         all_new_profiles = []
         errors = 0
         
-        # Try each token until we get enough profiles or run out of tokens
         for _ in range(len(TINDER_TOKENS)):
             try:
                 token = get_tinder_token()
@@ -62,9 +61,15 @@ def fetch_new_profiles():
                 }
                 
                 url = 'https://api.gotinder.com/v2/recs/core'
+                print(f"\nTrying to fetch profiles with token: {token[:8]}...")
+                
                 response = requests.get(url, headers=headers)
                 response.raise_for_status()
                 data = response.json()
+                
+                if not data.get('data', {}).get('results', []):
+                    print(f"No results in response for token {token[:8]}")
+                    continue
                 
                 current_time = time.time()
                 
@@ -89,23 +94,27 @@ def fetch_new_profiles():
                         }
                         
                         profile_id = f"{profile['name']}_{profile['age']}"
+                        print(f"Adding new profile: {profile_id}")
                         profile_database[profile_id] = profile
                         all_new_profiles.append(profile)
                 
-                # If we got enough profiles, break the loop
                 if len(all_new_profiles) >= 10:
                     break
                     
             except Exception as e:
-                print(f"Error with token {token}: {e}")
+                print(f"Error with token {token[:8]}: {str(e)}")
                 errors += 1
                 continue
         
-        print(f"Fetched {len(all_new_profiles)} new profiles using {len(TINDER_TOKENS) - errors} successful tokens")
+        print(f"\nFetch summary:")
+        print(f"- New profiles added: {len(all_new_profiles)}")
+        print(f"- Successful tokens: {len(TINDER_TOKENS) - errors}")
+        print(f"- Failed tokens: {errors}")
         return all_new_profiles
     
     except Exception as e:
-        print(f"Error fetching profiles: {e}")
+        print(f"Error in fetch_new_profiles: {str(e)}")
+        traceback.print_exc()
         return []
 
 def clean_old_profiles():
@@ -127,20 +136,33 @@ def search_profiles(name='', location='', age=''):
     exact_matches = []
     search_count = 0
     
-    while True:  # Infinite loop until matches are found
+    # Debug info
+    print(f"\nStarting search with criteria:")
+    print(f"Name: '{name}', Location: '{location}', Age: '{age}'")
+    print(f"Current database size: {len(profile_database)} profiles")
+    
+    while True:
         search_count += 1
-        print(f"Search iteration #{search_count}")
+        print(f"\nSearch iteration #{search_count}")
         
         # Search in existing profiles
-        for profile in profile_database.values():
+        for profile_id, profile in profile_database.items():
+            # Debug info for each profile check
+            print(f"\nChecking profile: {profile_id}")
+            print(f"Profile details: Name='{profile['name']}', Location='{profile['location']}', Age='{profile['age']}'")
+            
             # Check for exact matches
             name_match = not name or name.lower() == profile['name'].lower()
             location_match = not location or location.lower() == str(profile['location']).lower()
             age_match = not age or str(age) == str(profile['age'])
             
+            # Debug match info
+            print(f"Match results - Name: {name_match}, Location: {location_match}, Age: {age_match}")
+            
             if name_match and location_match and age_match:
-                if profile not in exact_matches:  # Avoid duplicates
+                if profile not in exact_matches:
                     exact_matches.append(profile)
+                    print(f"Found exact match: {profile['name']}")
             else:
                 # Check for partial matches
                 name_partial = not name or name.lower() in profile['name'].lower()
@@ -148,30 +170,27 @@ def search_profiles(name='', location='', age=''):
                 age_partial = not age or str(age) == str(profile['age'])
                 
                 if name_partial and location_partial and age_partial:
-                    if profile not in matches:  # Avoid duplicates
+                    if profile not in matches:
                         matches.append(profile)
+                        print(f"Found partial match: {profile['name']}")
         
-        # If we found exact matches, return them
         if exact_matches:
-            print(f"Found {len(exact_matches)} exact matches after {search_count} iterations!")
+            print(f"\nFound {len(exact_matches)} exact matches after {search_count} iterations!")
             return exact_matches
             
-        # If we have enough partial matches, return them
         if len(matches) >= 5:
-            print(f"Found {len(matches)} partial matches after {search_count} iterations")
+            print(f"\nFound {len(matches)} partial matches after {search_count} iterations")
             return matches
             
-        # Fetch new profiles and continue searching
-        print("Fetching new profiles...")
+        print("\nFetching new profiles...")
         new_profiles = fetch_new_profiles()
         
-        # If we couldn't fetch new profiles, wait a bit and try again
         if not new_profiles:
-            print("No new profiles found, waiting 2 seconds before trying again...")
-            time.sleep(2)  # Add a small delay to avoid overwhelming the API
-            continue  # Continue the loop instead of returning
+            print("No new profiles fetched, waiting 2 seconds...")
+            print(f"Current database state: {len(profile_database)} total profiles")
+            time.sleep(2)
+            continue
 
-    # This line should never be reached due to infinite loop
     return matches if matches else exact_matches
 
 @app.route('/search', methods=['POST'])

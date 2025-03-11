@@ -119,7 +119,7 @@ def clean_old_profiles():
     for profile_id in expired_profiles:
         del profile_database[profile_id]
 
-def search_profiles(name='', location='', age='', max_attempts=5):
+def search_profiles(name='', location='', age='', max_attempts=50):
     """Search profiles in database and fetch new ones if needed"""
     clean_old_profiles()
     

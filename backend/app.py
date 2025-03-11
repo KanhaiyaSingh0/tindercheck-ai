@@ -34,7 +34,7 @@ PROFILE_EXPIRY = 3600  # 1 hour in seconds
 
 # Add this near the top of the file, after imports
 TINDER_TOKENS = [
-    '7a468214-4d89-4715-84ee-c2aa72f48eb7',  # Original token    # Add more tokens here
+    'e4d30f8b-3607-48a0-a10d-df1675f0f90f',  # Original token    # Add more tokens here
     'b857a6ec-a5aa-4f8d-aace-f4952585f3ef',
 ]
 current_token_index = 0

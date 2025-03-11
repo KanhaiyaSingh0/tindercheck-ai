@@ -119,15 +119,11 @@ def clean_old_profiles():
     for profile_id in expired_profiles:
         del profile_database[profile_id]
 
-def search_profiles(name='', location='', age='', max_attempts=1000):
+def search_profiles(name='', location='', age=''):
     """Search profiles in database and fetch new ones if needed"""
     clean_old_profiles()
     
-    attempt = 0
-    while attempt < max_attempts:
-        attempt += 1
-        print(f"Search attempt {attempt}/{max_attempts}")
-        
+    while True:  # Remove max_attempts limit
         # First search in existing profiles
         matches = []
         exact_matches = []
@@ -164,10 +160,8 @@ def search_profiles(name='', location='', age='', max_attempts=1000):
         new_profiles = fetch_new_profiles()
         if not new_profiles:
             print("No new profiles found")
-            break
-    
-    # If we've exhausted all attempts, return whatever matches we have
-    return matches if matches else exact_matches
+            # Instead of breaking, return whatever matches we have
+            return matches if matches else exact_matches
 
 @app.route('/search', methods=['POST'])
 def search():
@@ -184,10 +178,10 @@ def search():
             return jsonify({
                 "status": "error",
                 "message": "Please provide at least one search criteria (name, location, or age)"
-            }), 200  # Changed from 400 to 200
+            }), 200
         
-        # Search profiles with multiple attempts
-        matches = search_profiles(name, location, age, max_attempts=5)
+        # Search profiles without max_attempts limit
+        matches = search_profiles(name, location, age)
         
         if not matches:
             search_criteria = []
@@ -204,7 +198,7 @@ def search():
                     "Searching again in a few minutes",
                     "Checking if the spelling is correct"
                 ]
-            }), 200  # Changed from 404 to 200
+            }), 200
         
         # Handle image upload
         image_file = request.files.get('image')
